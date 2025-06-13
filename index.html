@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>DataCraft</title>
+<title>Редактор рецептов для Minecraft</title>
 <style>
   body {
     margin: 0;
@@ -32,6 +32,11 @@
     flex-direction: column;
     gap: 12px;
   }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: -1px;
+  }
   .tab {
     background: #f0f0f0;
     border: 1px solid #999;
@@ -39,9 +44,21 @@
     padding: 6px 12px;
     font-weight: bold;
     user-select: none;
-    width: 100px;
+    width: 120px;
     text-align: center;
-    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: #d0d0d0;
+    border-bottom: 1px solid #d0d0d0;
+  }
+  .tab-content {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tab-content.active {
+    display: flex;
   }
   .crafting-area {
     background: #a0a0a0;
@@ -161,11 +178,15 @@
     margin-bottom: 4px;
     font-weight: bold;
   }
-  .input-group input {
+  .input-group input, .input-group textarea {
     width: 100%;
     padding: 8px;
     border-radius: 4px;
     border: 1px solid #999;
+  }
+  .input-group textarea {
+    min-height: 80px;
+    resize: vertical;
   }
   .key-symbol {
     width: 20px;
@@ -184,44 +205,120 @@
   .ingredient-controls button {
     padding: 8px;
   }
+  .custom-item-preview {
+    background: #e0e0e0;
+    border: 1px solid #999;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 12px;
+  }
+  .custom-item-name {
+    color: #0000FF;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .custom-item-lore {
+    color: #555555;
+    font-style: italic;
+  }
+  .saved-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .saved-item {
+    background: #e0e0e0;
+    border: 1px solid #999;
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+  }
+  .saved-item:hover {
+    background: #d0d0d0;
+  }
+  .saved-item.selected {
+    background: #4CAF50;
+    color: white;
+  }
 </style>
 </head>
 <body>
 
 <div class="container">
   <div class="left-panel">
-    <div class="tab">Crafting</div>
-    
-    <div class="input-group">
-      <label for="recipe-name">Название рецепта:</label>
-      <input type="text" id="recipe-name" placeholder="custom_recipe">
+    <div class="tabs">
+      <div class="tab active" data-tab="crafting">Crafting</div>
+      <div class="tab" data-tab="namelore">Name and Lore</div>
     </div>
     
-    <div class="input-group">
-      <label for="result-item">ID результата:</label>
-      <input type="text" id="result-item" placeholder="minecraft:item_id">
+    <!-- Вкладка крафтинга -->
+    <div class="tab-content active" id="crafting-tab">
+      <div class="input-group">
+        <label for="recipe-name">Название рецепта:</label>
+        <input type="text" id="recipe-name" placeholder="custom_recipe">
+      </div>
+      
+      <div class="input-group">
+        <label for="result-item">ID результата:</label>
+        <input type="text" id="result-item" placeholder="minecraft:item_id">
+      </div>
+      
+      <div class="input-group">
+        <label for="result-count">Количество:</label>
+        <input type="number" id="result-count" value="1" min="1">
+      </div>
+      
+      <div class="crafting-area">
+        <div class="crafting-grid" id="crafting-grid"></div>
+        <div class="arrow"></div>
+        <div class="result-cell" id="result-cell">?</div>
+      </div>
+      
+      <div class="button-group">
+        <button id="download-json-btn">Скачать JSON</button>
+        <button id="download-datapack-btn">Скачать датапак</button>
+      </div>
+      
+      <div class="info-container" style="margin-top: 12px;">
+        <div class="info-box full-width" id="json-preview">
+          <h3>Предпросмотр JSON</h3>
+          <div id="json-text">Здесь будет отображаться JSON рецепта</div>
+        </div>
+      </div>
     </div>
     
-    <div class="input-group">
-      <label for="result-count">Количество:</label>
-      <input type="number" id="result-count" value="1" min="1">
-    </div>
-    
-    <div class="crafting-area">
-      <div class="crafting-grid" id="crafting-grid"></div>
-      <div class="arrow"></div>
-      <div class="result-cell" id="result-cell">?</div>
-    </div>
-    
-    <div class="button-group">
-      <button id="download-json-btn">Скачать JSON</button>
-      <button id="download-datapack-btn">Скачать датапак</button>
-    </div>
-    
-    <div class="info-container" style="margin-top: 12px;">
-      <div class="info-box full-width" id="json-preview">
-        <h3>Предпросмотр JSON</h3>
-        <div id="json-text">Здесь будет отображаться JSON рецепта</div>
+    <!-- Вкладка названия и описания -->
+    <div class="tab-content" id="namelore-tab">
+      <div class="input-group">
+        <label for="custom-item-id">ID предмета:</label>
+        <input type="text" id="custom-item-id" placeholder="minecraft:item_id">
+      </div>
+      
+      <div class="input-group">
+        <label for="custom-item-name">Название предмета:</label>
+        <input type="text" id="custom-item-name" placeholder="Название">
+      </div>
+      
+      <div class="input-group">
+        <label for="custom-item-lore">Описание предмета (каждая строка - новая строка описания):</label>
+        <textarea id="custom-item-lore" placeholder="Первая строка описания\nВторая строка описания"></textarea>
+      </div>
+      
+      <button id="save-custom-item">Сохранить предмет</button>
+      
+      <div class="custom-item-preview">
+        <h3>Предпросмотр:</h3>
+        <div class="custom-item-name" id="custom-item-preview-name">Название предмета</div>
+        <div class="custom-item-lore" id="custom-item-preview-lore">Описание предмета</div>
+      </div>
+      
+      <div class="panel-label">Сохранённые предметы:</div>
+      <div class="saved-items" id="saved-items"></div>
+      
+      <div class="info-box">
+        <h3>JSON предмета:</h3>
+        <div id="custom-item-json">Здесь будет JSON для предмета</div>
       </div>
     </div>
   </div>
@@ -250,6 +347,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
+  // Элементы интерфейса
   const craftingGrid = document.getElementById('crafting-grid');
   const resultCell = document.getElementById('result-cell');
   const jsonText = document.getElementById('json-text');
@@ -261,8 +359,31 @@
   const newIngredientInput = document.getElementById('new-ingredient');
   const addIngredientBtn = document.getElementById('add-ingredient');
   
+  // Элементы для вкладки Name and Lore
+  const customItemIdInput = document.getElementById('custom-item-id');
+  const customItemNameInput = document.getElementById('custom-item-name');
+  const customItemLoreInput = document.getElementById('custom-item-lore');
+  const saveCustomItemBtn = document.getElementById('save-custom-item');
+  const customItemPreviewName = document.getElementById('custom-item-preview-name');
+  const customItemPreviewLore = document.getElementById('custom-item-preview-lore');
+  const customItemJson = document.getElementById('custom-item-json');
+  const savedItemsContainer = document.getElementById('saved-items');
+  
+  // Переключение вкладок
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      tab.classList.add('active');
+      document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+    });
+  });
+
   let ingredients = {};
   let selectedSymbol = null;
+  let savedItems = [];
+  let selectedSavedItem = null;
 
   // Создаём 9 ячеек крафта
   for(let i=0; i<9; i++) {
@@ -309,6 +430,86 @@
     updateJsonPreview();
   });
 
+  // Обновление предпросмотра предмета
+  customItemNameInput.addEventListener('input', updateCustomItemPreview);
+  customItemLoreInput.addEventListener('input', updateCustomItemPreview);
+  
+  function updateCustomItemPreview() {
+    const name = customItemNameInput.value.trim() || "Название предмета";
+    const lore = customItemLoreInput.value.trim() || "Описание предмета";
+    
+    customItemPreviewName.textContent = name;
+    customItemPreviewLore.innerHTML = lore.split('\n').map(line => line.trim()).filter(line => line).join('<br>');
+    
+    updateCustomItemJson();
+  }
+  
+  function updateCustomItemJson() {
+    const itemId = customItemIdInput.value.trim() || "minecraft:stone";
+    const name = customItemNameInput.value.trim();
+    const lore = customItemLoreInput.value.trim().split('\n').map(line => line.trim()).filter(line => line);
+    
+    const itemJson = {
+      item: itemId,
+      name: name ? `{"text":"${name}","italic":false}` : undefined,
+      lore: lore.length > 0 ? lore.map(line => `{"text":"${line}","italic":false,"color":"gray"}`) : undefined
+    };
+    
+    // Удаляем undefined поля
+    if(!itemJson.name) delete itemJson.name;
+    if(!itemJson.lore) delete itemJson.lore;
+    
+    customItemJson.textContent = JSON.stringify(itemJson, null, 2);
+  }
+  
+  // Сохранение предмета
+  saveCustomItemBtn.addEventListener('click', () => {
+    const itemId = customItemIdInput.value.trim();
+    const name = customItemNameInput.value.trim();
+    const lore = customItemLoreInput.value.trim();
+    
+    if(!itemId) {
+      alert('Введите ID предмета');
+      return;
+    }
+    
+    const item = {
+      id: itemId,
+      name: name,
+      lore: lore,
+      json: JSON.parse(customItemJson.textContent)
+    };
+    
+    savedItems.push(item);
+    renderSavedItems();
+  });
+  
+  function renderSavedItems() {
+    savedItemsContainer.innerHTML = '';
+    
+    savedItems.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'saved-item';
+      if(selectedSavedItem === index) div.classList.add('selected');
+      
+      div.innerHTML = `
+        <div><strong>${item.id.split(':').pop()}</strong></div>
+        <div>${item.name || 'Без названия'}</div>
+      `;
+      
+      div.addEventListener('click', () => {
+        selectedSavedItem = index;
+        renderSavedItems();
+        
+        // Устанавливаем этот предмет как результат крафта
+        resultItemInput.value = item.id;
+        updateJsonPreview();
+      });
+      
+      savedItemsContainer.appendChild(div);
+    });
+  }
+  
   function renderIngredientsList() {
     // Очищаем список (кроме первого элемента с полями ввода)
     while(ingredientsList.children.length > 1) {
@@ -383,6 +584,9 @@
     const resultItem = resultItemInput.value.trim() || 'minecraft:stone';
     const resultCount = parseInt(resultCountInput.value) || 1;
     
+    // Проверяем, есть ли сохранённый предмет с таким ID
+    const customItem = savedItems.find(item => item.id === resultItem);
+    
     const recipeJson = {
       type: "minecraft:crafting_shaped",
       pattern: pattern.map(row => row.join('')).filter(row => row.trim()),
@@ -392,6 +596,14 @@
         count: resultCount
       }
     };
+    
+    // Если есть кастомный предмет, добавляем его данные
+    if(customItem) {
+      recipeJson.result.name = customItem.json.name;
+      if(customItem.json.lore) {
+        recipeJson.result.lore = customItem.json.lore;
+      }
+    }
     
     jsonText.textContent = JSON.stringify(recipeJson, null, 2);
     
@@ -423,7 +635,7 @@
     zip.file("pack.mcmeta", JSON.stringify({
       pack: {
         pack_format: 10,
-        description: "created by datacraft"
+        description: "Custom recipes datapack"
       }
     }, null, 2));
     
@@ -467,6 +679,7 @@
   
   // Инициализация
   updateJsonPreview();
+  updateCustomItemPreview();
 </script>
 
 </body>
